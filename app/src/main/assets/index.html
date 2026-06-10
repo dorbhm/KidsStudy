@@ -30,7 +30,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#5b8def">
-<title>כוכב הלמידה 3.0 ⭐ קורן משה & אייר דוד</title>
+<title>QAWIEE KIDS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Varela+Round&family=Secular+One&family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
 <style>
@@ -201,7 +201,7 @@ main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;overf
 .answer-slot{margin:0 auto;width:clamp(110px,16vw,140px);height:clamp(110px,16vw,140px);font-family:'Secular One',sans-serif;font-size:60px}
 
 /* קריאה */
-.word-display{display:flex;flex-direction:row-reverse;justify-content:center;align-items:center;gap:10px;direction:rtl;flex-wrap:wrap}
+.word-display{display:flex;flex-direction:row;justify-content:center;align-items:center;gap:10px;direction:rtl;flex-wrap:wrap}
 .word-display.ltr{direction:ltr;flex-direction:row}
 .word-pic{font-size:clamp(80px,13vw,130px);filter:drop-shadow(0 5px 4px rgba(0,0,0,.18))}
 .letter-box{font-family:'Secular One',sans-serif;font-size:clamp(45px,8vw,70px);background:#fff;border-radius:20px;width:clamp(80px,11vw,105px);height:clamp(80px,11vw,105px);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
@@ -289,7 +289,7 @@ main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;overf
     <button class="btn-ico" id="homeBtn" aria-label="חזרה">🏠</button>
     <div class="pill" id="profilePill"><span id="hudAvatar">🦊</span><span id="hudName"></span></div>
   </div>
-  <div class="brand">⭐ כּוֹכַב הַלְּמִידָה</div>
+  <div class="brand">⭐ QAWIEE KIDS</div>
   <div class="hud">
     <button class="btn-ico" id="ttsBtn" aria-label="הקראה אוטומטית">🔇</button>
     <div class="pill" id="starPill" style="display:none"><span class="s">⭐</span><span id="starCount">0</span></div>
@@ -299,8 +299,8 @@ main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;overf
 <main>
   <!-- ספלאש -->
   <section class="screen active" id="splash">
-    <div class="logo-star">🌟</div>
-    <div class="logo-title">כּוֹכַב הַלְּמִידָה</div>
+    <img src="assets/qawiee_kids_logo.png" alt="QAWIEE KIDS" style="width:280px;height:auto;max-width:80%;animation:logoFloat 2.6s ease-in-out infinite;filter:drop-shadow(0 10px 8px rgba(0,0,0,.2))">
+    <div class="logo-title" style="font-size: 38px; margin-top: 10px;">QAWIEE KIDS</div>
     <div class="logo-sub">הַמַּסָּע שֶׁל קוֹרֶן מֹשֶׁה וְאַיֵּיר דָּוִד 🚀</div>
     <button class="big-btn green" id="startBtn">בּוֹאוּ נַתְחִיל! 🎉</button>
     <div class="ver-tag" id="verTag"></div>
@@ -343,6 +343,9 @@ main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;overf
         <div class="lvl-bar"><div class="lvl-fill" id="lvlFill"></div></div>
       </div>
       <button class="upd-btn" id="updBtn" title="בדיקת עדכונים">🔄</button>
+    </div>
+    <div style="display:flex; justify-content:center; margin: 4px auto 12px; max-width:760px; width:100%;">
+      <button class="big-btn blue" id="updBtnBig" style="font-size: clamp(16px, 3vw, 20px); padding: 12px 28px; width: 100%;">🔄 עִדְכּוּן גִּרְסָה וּשְׁאֵלוֹת מֵהַ-GitHub</button>
     </div>
     <div class="menu-grid" id="menuGrid"></div>
   </section>
@@ -760,6 +763,7 @@ function goHome(){
    עדכוני גרסה ומאגר שאלות מרחוק (GitHub)
    ============================================================ */
 $('#updBtn').addEventListener('click',checkUpdates);
+if($('#updBtnBig')) $('#updBtnBig').addEventListener('click',checkUpdates);
 async function checkUpdates(){
   let url=localStorage.getItem('kls2_updateUrl')||'https://raw.githubusercontent.com/dorbhm/KidsStudy/main/version.json';
   try{

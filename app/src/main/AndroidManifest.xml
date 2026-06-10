@@ -6,7 +6,9 @@
 
     <application
         android:allowBackup="true"
-        android:label="כוכב הלמידה"
+        android:icon="@drawable/ic_launcher"
+        android:roundIcon="@drawable/ic_launcher"
+        android:label="QAWIEE KIDS"
         android:supportsRtl="true"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         
