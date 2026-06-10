@@ -6,7 +6,7 @@
   try {
     const saved = JSON.parse(localStorage.getItem('kls2_localHtml'));
     if (saved && saved.version && saved.html) {
-      const currentVer = '3.0.0';
+      const currentVer = '3.0.1';
       const pa = saved.version.split('.').map(Number);
       const pb = currentVer.split('.').map(Number);
       let isNewer = false;
@@ -427,7 +427,7 @@ main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;overf
    פרופילים | קושי לפי גיל | עברית + אנגלית | עדכונים מרחוק
    ============================================================ */
 'use strict';
-const APP_VERSION='3.0.0';
+const APP_VERSION='3.0.1';
 
 const $=s=>document.querySelector(s);
 const stage=$('#stage'), promptEl=$('#prompt'), dotsEl=$('#dots');
@@ -436,6 +436,15 @@ const pick=(a,n)=>shuffle(a).slice(0,n);
 const rnd=a=>a[Math.floor(Math.random()*a.length)];
 const el=(tag,cls,html)=>{const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;};
 const stripNikud=t=>t.replace(/[֑-ׇ]/g,'');
+const splitHebrew=word=>{
+  try {
+    if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+      const segmenter = new Intl.Segmenter('he', { granularity: 'grapheme' });
+      return Array.from(segmenter.segment(word)).map(s => s.segment);
+    }
+  } catch(e) {}
+  return word.split('');
+};
 $('#verTag').textContent='גרסה '+APP_VERSION;
 
 /* ============================================================
@@ -887,7 +896,7 @@ async function checkUpdates(){
     let updatedHtml = false;
     if(j.version&&j.version!==APP_VERSION){
       if(confirm('🎉 נמצאה גרסה חדשה: '+j.version+' (אצלך: '+APP_VERSION+')\nהאם ברצונך לעדכן את האפליקציה?')){
-        const htmlUrl = url.replace('version.json', 'index.html');
+        const htmlUrl = url.replace('version.json', 'app/src/main/assets/index.html');
         const htmlRes = await fetch(htmlUrl+'?t='+Date.now());
         if(htmlRes.ok){
           const htmlText = await htmlRes.text();
@@ -1244,24 +1253,37 @@ const ROUNDS={
   reading(){
     const t=tier();
     const w=rnd(WORDS[t]);
-    const pos=t===1?0:(t===2?w.w.length-1:1+Math.floor(Math.random()*(w.w.length-2)));
-    const missing=w.w[pos];
+    const graphemes = splitHebrew(w.say);
+    const pos=t===1?0:(t===2?graphemes.length-1:1+Math.floor(Math.random()*(graphemes.length-2)));
+    const missing=graphemes[pos];
+    const vowels=missing.slice(1);
     setPrompt('אֵיזוֹ אוֹת חֲסֵרָה?',f=>speak('איזו אות חסרה במילה '+w.say+'?','he-IL',f));
     const disp=el('div','word-display');
     disp.appendChild(el('div','word-pic',w.pic));
-    w.w.split('').forEach((ch,i)=>{
+    graphemes.forEach((ch,i)=>{
       if(i===pos){
         const slot=el('div','letter-box letter-slot dz','');
-        slot.dataset.key=ch;disp.appendChild(slot);
+        slot.dataset.key=ch;
+        disp.appendChild(slot);
       }else disp.appendChild(el('div','letter-box',ch));
     });
     const opts=new Set([missing]);
-    while(opts.size<3)opts.add(rnd(HEB_LETTERS));
+    while(opts.size<3){
+      const dist=rnd(HEB_LETTERS);
+      opts.add(dist+vowels);
+    }
     const row=el('div','row');
     shuffle([...opts]).forEach(L=>{
       const c=el('div','letter-chip',L);
       makeDraggable(c,(zone,elem,ev)=>{
-        if(zone.dataset.key===L){snapInto(zone,elem);good(ev);speak(w.say+'!');roundDone(ev);return true;}
+        if(zone.dataset.key===L){
+          elem.textContent = L;
+          snapInto(zone,elem);
+          good(ev);
+          speak(w.say+'!');
+          roundDone(ev);
+          return true;
+        }
         bad(ev);return false;
       });
       row.appendChild(c);
@@ -1275,23 +1297,30 @@ const ROUNDS={
     setPrompt('בְּנֵה אֶת הַמִּלָּה!',f=>speak('בנה את המילה '+w.say,'he-IL',f));
     const disp=el('div','word-display');
     disp.appendChild(el('div','word-pic',w.pic));
-    const letters=w.w.split('');
+    const graphemes=splitHebrew(w.say);
     let nextIdx=0,doneCnt=0;
-    letters.forEach((ch,i)=>{
+    graphemes.forEach((ch,i)=>{
       const slot=el('div','letter-box letter-slot dz','');
       slot.dataset.pos=i;disp.appendChild(slot);
     });
-    const chips=letters.slice();
-    if(t===3)chips.push(rnd(HEB_LETTERS.filter(l=>!letters.includes(l))));
+    const chips=graphemes.slice();
+    if(t===3){
+      const cleanWord=stripNikud(w.say);
+      const distLetter=rnd(HEB_LETTERS.filter(l=>!cleanWord.includes(l)));
+      const randGrapheme=rnd(graphemes);
+      const vowels=randGrapheme.slice(1);
+      chips.push(distLetter+vowels);
+    }
     const row=el('div','row');
     shuffle(chips.map((ch,i)=>({ch,uid:i}))).forEach(({ch})=>{
       const c=el('div','letter-chip',ch);
       makeDraggable(c,(zone,elem,ev)=>{
         const p=+zone.dataset.pos;
-        if(letters[p]===ch&&p===nextIdx){
+        if(graphemes[p]===ch&&p===nextIdx){
+          elem.textContent = graphemes[p];
           snapInto(zone,elem);good(ev);sndPop();
-          speak(ch);nextIdx++;doneCnt++;
-          if(doneCnt===letters.length){speak(w.say+'! איזה יופי!');roundDone(ev);}
+          speak(stripNikud(ch));nextIdx++;doneCnt++;
+          if(doneCnt===graphemes.length){speak(w.say+'! איזה יופי!');roundDone(ev);}
           return true;
         }
         bad(ev);return false;
