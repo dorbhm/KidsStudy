@@ -63,6 +63,48 @@ body{
 .hill.h2{right:-10vw}.hill.h1{left:-10vw;background:#5ec24a}
 .bird{position:absolute;font-size:30px;animation:drift linear infinite}
 
+/* ---------- הנפשות נושמות ורקע תוסס ---------- */
+.mcard, .pcard, .form-card {
+  animation: breathing 4s ease-in-out infinite;
+}
+.mcard:nth-child(even) {
+  animation-delay: 1.5s;
+}
+.pcard:nth-child(even) {
+  animation-delay: 2s;
+}
+@keyframes breathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+.balloon {
+  position: absolute;
+  font-size: 44px;
+  animation: floatUp linear infinite;
+  z-index: 1;
+}
+@keyframes floatUp {
+  0% { transform: translateY(110vh) translateX(0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.8; }
+  90% { opacity: 0.8; }
+  100% { transform: translateY(-20vh) translateX(40px) rotate(15deg); opacity: 0; }
+}
+
+.butterfly {
+  position: absolute;
+  font-size: 32px;
+  animation: flutter linear infinite;
+  z-index: 1;
+}
+@keyframes flutter {
+  0% { transform: translate(-10vw, 50vh) scale(1) rotate(0deg); }
+  25% { transform: translate(25vw, 25vh) scale(1.1) rotate(15deg); }
+  50% { transform: translate(55vw, 45vh) scale(0.9) rotate(-10deg); }
+  75% { transform: translate(80vw, 20vh) scale(1.05) rotate(20deg); }
+  100% { transform: translate(115vw, 35vh) scale(1) rotate(0deg); }
+}
+
 /* ---------- כותרת ---------- */
 header{position:relative;z-index:5;display:flex;align-items:center;justify-content:space-between;padding:8px 14px;gap:8px;min-height:62px}
 .brand{font-family:'Secular One',sans-serif;font-size:clamp(16px,3.2vw,24px);color:#fff;text-shadow:0 3px 0 rgba(58,46,110,.35)}
@@ -356,7 +398,11 @@ main{position:relative;z-index:2;flex:1;display:flex;flex-direction:column;overf
       <button class="speak-btn" id="speakBtn" aria-label="הקראה">🔊</button>
       <div class="prompt" id="prompt"></div>
     </div>
-    <div class="dots" id="dots"></div>
+    <div class="dots-row" style="display:flex; justify-content:center; align-items:center; gap:20px; margin: 8px 0;">
+      <button class="btn-ico" id="prevRoundBtn" style="font-size:20px; width:44px; height:44px; display:flex; align-items:center; justify-content:center;" title="שאלה קודמת">◀️</button>
+      <div class="dots" id="dots" style="margin:0;"></div>
+      <button class="btn-ico" id="nextRoundBtn" style="font-size:20px; width:44px; height:44px; display:flex; align-items:center; justify-content:center;" title="שאלה הבאה">▶️</button>
+    </div>
     <div class="stage" id="stage"></div>
   </section>
 
@@ -447,10 +493,40 @@ function tone(freq,t0,dur,type='sine',vol=.25){
   g.gain.exponentialRampToValueAtTime(.001,t+dur);
   o.start(t);o.stop(t+dur+.05);
 }
-const sndGood=()=>{[523,659,784].forEach((f,i)=>tone(f,i*.09,.25,'triangle'));};
-const sndBad =()=>{tone(220,0,.2,'sawtooth',.12);tone(180,.12,.25,'sawtooth',.12);};
-const sndWin =()=>{[523,659,784,1047,784,1047].forEach((f,i)=>tone(f,i*.13,.3,'triangle',.3));};
-const sndPop =()=>tone(880,0,.08,'sine',.15);
+const sndGood=()=>{
+  const notes=[523.25, 659.25, 784.00, 1046.50];
+  notes.forEach((f,i)=>{
+    tone(f,i*.08,.3,'triangle',.2);
+    tone(f*1.005,i*.08,.3,'sine',.1);
+  });
+};
+const sndBad =()=>{
+  const c=ac(),o=c.createOscillator(),g=c.createGain();
+  o.type='triangle';
+  o.frequency.setValueAtTime(220, c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(110, c.currentTime+0.25);
+  o.connect(g);g.connect(c.destination);
+  g.gain.setValueAtTime(0.2, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.25);
+  o.start();o.stop(c.currentTime+0.3);
+};
+const sndWin =()=>{
+  const notes=[523.25, 659.25, 784.00, 1046.50, 1318.51, 1567.98];
+  notes.forEach((f,i)=>{
+    tone(f,i*.10,.4,'triangle',0.2);
+    tone(f*1.5,i*.10,.4,'sine',0.1);
+  });
+};
+const sndPop =()=>{
+  const c=ac(),o=c.createOscillator(),g=c.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(400, c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(1200, c.currentTime+0.08);
+  o.connect(g);g.connect(c.destination);
+  g.gain.setValueAtTime(0.15, c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.08);
+  o.start();o.stop(c.currentTime+0.1);
+};
 const sndFlip=()=>tone(660,0,.07,'sine',.12);
 
 /* ============================================================
@@ -458,24 +534,27 @@ const sndFlip=()=>tone(660,0,.07,'sine',.12);
    ============================================================ */
 const VOICES={he:null,en:null};
 function pickVoices(){
-  const vs=speechSynthesis.getVoices();
-  const he=vs.filter(v=>/^(he|iw)/i.test(v.lang));
-  /* עדיפות: קולות Google/Natural/Online — מבטאים עברית הרבה יותר טוב */
-  VOICES.he=he.find(v=>/google/i.test(v.name))
-          ||he.find(v=>/natural|online|neural/i.test(v.name))
-          ||he[0]||null;
-  const en=vs.filter(v=>/^en(-US|-GB)?/i.test(v.lang));
-  VOICES.en=en.find(v=>/google us english/i.test(v.name))
-          ||en.find(v=>/google/i.test(v.name))
-          ||en.find(v=>/natural|online|neural/i.test(v.name))
-          ||en[0]||null;
+  try {
+    if (typeof speechSynthesis === 'undefined' || !speechSynthesis.getVoices) return;
+    const vs=speechSynthesis.getVoices();
+    const he=vs.filter(v=>/^(he|iw)/i.test(v.lang));
+    VOICES.he=he.find(v=>/google/i.test(v.name))
+            ||he.find(v=>/natural|online|neural/i.test(v.name))
+            ||he[0]||null;
+    const en=vs.filter(v=>/^en(-US|-GB)?/i.test(v.lang));
+    VOICES.en=en.find(v=>/google us english/i.test(v.name))
+            ||en.find(v=>/google/i.test(v.name))
+            ||en.find(v=>/natural|online|neural/i.test(v.name))
+            ||en[0]||null;
+  } catch(e) {}
 }
-try{pickVoices();speechSynthesis.onvoiceschanged=pickVoices;}catch(e){}
+try{if (typeof speechSynthesis !== 'undefined') { pickVoices(); speechSynthesis.onvoiceschanged=pickVoices; }}catch(e){}
 function ttsOn(){return !!(P&&P.tts);}
 /* force=true ← לחיצה ידנית על 🔊 תמיד מקריאה */
 function speak(text,lang='he-IL',force=false){
   if(!force&&!ttsOn())return;
   try{
+    if (typeof speechSynthesis === 'undefined') return;
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(stripNikud(text));
     u.lang=lang;
@@ -493,7 +572,11 @@ $('#speakBtn').addEventListener('click',()=>{
 $('#ttsBtn').addEventListener('click',()=>{
   if(!P)return;
   P.tts=!P.tts;saveDB();renderTtsBtn();sndPop();
-  if(P.tts)speak('ההקראה פועלת!','he-IL',true);else speechSynthesis.cancel();
+  try {
+    if (typeof speechSynthesis !== 'undefined') {
+      if(P.tts)speak('הַהַקְרָאָה פּוֹעֶלֶת!','he-IL',true);else speechSynthesis.cancel();
+    }
+  } catch(e) {}
 });
 function renderTtsBtn(){
   const b=$('#ttsBtn');
@@ -561,6 +644,22 @@ function facePop(){
     b.style.top=(20+i*18)+'%';b.style.animationDuration=(26+i*12)+'s';
     b.style.animationDelay=(-i*9)+'s';bg.appendChild(b);
   }
+  // Add balloons
+  for(let i=0;i<3;i++){
+    const bal=el('div','balloon',rnd(['🎈','🎈','🎈']));
+    bal.style.left=(15+i*30)+'%';
+    bal.style.animationDuration=(18+i*8)+'s';
+    bal.style.animationDelay=(-i*6)+'s';
+    bg.appendChild(bal);
+  }
+  // Add butterflies and insects
+  const forestFriends=['🦋','🦋','🐝','🐞'];
+  for(let i=0;i<3;i++){
+    const bf=el('div','butterfly',rnd(forestFriends));
+    bf.style.animationDuration=(22+i*10)+'s';
+    bf.style.animationDelay=(-i*8)+'s';
+    bg.appendChild(bf);
+  }
 })();
 
 /* ============================================================
@@ -575,7 +674,22 @@ function show(name){
   $('#ttsBtn').style.display=(P&&(name==='home'||name==='game'))?'block':'none';
   $('#starPill').style.display=P?'flex':'none';
 }
-$('#homeBtn').addEventListener('click',()=>{speechSynthesis.cancel();goHome();});
+$('#homeBtn').addEventListener('click',()=>{
+  try { if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel(); } catch(e) {}
+  goHome();
+});
+$('#prevRoundBtn').addEventListener('click', () => {
+  if (round > 0) {
+    round--;
+    nextRound();
+  }
+});
+$('#nextRoundBtn').addEventListener('click', () => {
+  if (round < totalRounds - 1) {
+    round++;
+    nextRound();
+  }
+});
 $('#menuBtn').addEventListener('click',goHome);
 $('#againBtn').addEventListener('click',()=>startGame(currentGame));
 $('#profilePill').addEventListener('click',()=>{renderProfiles();show('profiles');});
