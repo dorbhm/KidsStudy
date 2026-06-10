@@ -4,4 +4,5 @@
 local.properties
 .idea
 *.apk
+!QAWIEE_KIDS.apk
 .DS_Store
